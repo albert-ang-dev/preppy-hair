@@ -8,7 +8,7 @@ const supabase = createClient(config.public.supabaseUrl, config.public.supabaseK
 const appointments = ref([]);
 onMounted(async () => {
   loading.value = true
-  const { data, error } = await supabase.from('clients').select('*');
+  const { data, error } = await supabase.from('clients').select('*').eq('barber_id', (await supabase.auth.getUser()).data.user.id);
   if (error) {
     console.error('Error fetching appointments:', error)
   } else {
@@ -156,7 +156,7 @@ function noShowButtonClick(appt) {
                   class="btn btn-sm btn-outline-success rounded-pill me-2"
                   @click="completedButtonClick(appt)"
                 >
-                  Completed
+                  Aprove
                 </button>
 
                 <button
@@ -164,7 +164,7 @@ function noShowButtonClick(appt) {
                   class="btn btn-sm btn-outline-danger rounded-pill"
                   @click="noShowButtonClick(appt)"
                 >
-                  No Show
+                  Decline
                 </button>
               </td>
             </tr>

@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 
 const config = useRuntimeConfig();
 const supabase = createClient(config.public.supabaseUrl, config.public.supabaseKey);
+const appointmentLink = ref("localhost:3000/book/");
 
 const days = [
   { key: 'monday', label: 'Monday' },
@@ -15,7 +16,7 @@ const days = [
 ]
 
 const availability = reactive(
-  Object.fromEntries(days.map((d) => [d.key, { start_time: '', end_time: '' }]))
+  Object.fromEntries(days.map((d) => [d.key, { start_time: '', end_time: '', closed: false }]))
 )
 
 const loading = ref(false)
@@ -24,14 +25,21 @@ const saveMessage = ref('')
 
 onMounted(async () => {
   loading.value = true
-  const { data, error } = await supabase.from('barber_availability').select('*')
+  const { data: { user } } = await supabase.auth.getUser()
+  const { data, error } = await supabase
+    .from('barber_availability')
+    .select('*')
+    .eq('barber_id', user.id)
+
   if (error) {
     console.error('Error loading availability:', error)
   } else {
+    appointmentLink.value += user.id;
     for (const row of data) {
       if (availability[row.day_of_week]) {
         availability[row.day_of_week].start_time = row.start_time?.slice(0, 5) ?? ''
         availability[row.day_of_week].end_time = row.end_time?.slice(0, 5) ?? ''
+        availability[row.day_of_week].closed = !row.start_time || !row.end_time
       }
     }
   }
@@ -42,13 +50,18 @@ async function saveAvailability() {
   saving.value = true
   saveMessage.value = ''
 
+  const { data: { user } } = await supabase.auth.getUser()
+
   const rows = days.map((d) => ({
+    barber_id: user.id,
     day_of_week: d.key,
-    start_time: availability[d.key].start_time || null,
-    end_time: availability[d.key].end_time || null,
+    start_time: availability[d.key].closed ? null : availability[d.key].start_time || null,
+    end_time: availability[d.key].closed ? null : availability[d.key].end_time || null,
   }))
 
-  const { error } = await supabase.from('barber_availability').upsert(rows, { onConflict: 'day_of_week' })
+  const { error } = await supabase
+    .from('barber_availability')
+    .upsert(rows, { onConflict: 'barber_id,day_of_week' })
 
   if (error) {
     console.error('Error saving availability:', error)
@@ -68,31 +81,7 @@ async function saveAvailability() {
       Use the sidebar to review today's schedule, check in appointments, and keep the chairs full.
     </p>
 
-    <h4>Settings for Bookings / Appointments</h4>
-    <p class="text-muted mb-4">
-      You can manage your booking settings, availability, and other preferences in the settings section.
-    </p>
 
-    <div v-if="loading" class="text-muted mb-3">Loading availability…</div>
-
-    <template v-else>
-      <div v-for="day in days" :key="day.key" class="d-flex flex-wrap align-items-center gap-2 mb-2">
-        <span class="availability-day-label">{{ day.label }}</span>
-        <input type="time" class="form-control w-auto" v-model="availability[day.key].start_time">
-        <span class="text-muted">To</span>
-        <input type="time" class="form-control w-auto" v-model="availability[day.key].end_time">
-      </div>
-
-      <button
-        type="button"
-        class="btn btn-gold rounded-pill px-4 mt-3"
-        :disabled="saving"
-        @click="saveAvailability"
-      >
-        {{ saving ? 'Saving…' : 'Save Availability' }}
-      </button>
-      <p v-if="saveMessage" class="small text-muted mt-2 mb-0">{{ saveMessage }}</p>
-    </template>
   </div>
 </template>
 

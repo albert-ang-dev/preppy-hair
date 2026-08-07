@@ -4,7 +4,9 @@ export default defineNuxtRouteMiddleware(async (to) => {
   const supabase = createClient(config.public.supabaseUrl, config.public.supabaseKey)
   const { data: { session } } = await supabase.auth.getSession()
 
-  if (!session && to.path !== '/login') {
+  const isPublicPath = to.path === '/login' || to.path.startsWith('/book')
+
+  if (!session && !isPublicPath) {
     return navigateTo('/login')
   }
   if (session && to.path === '/login') {
