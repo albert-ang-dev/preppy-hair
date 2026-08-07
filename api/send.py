@@ -22,7 +22,7 @@ class handler(BaseHTTPRequestHandler):
             # 3. Fire the email via Resend
             params = {
                 "from": "Contact Form <onboarding@resend.dev>",
-                "to": ["your_personal_email@example.com"], # Where you want to receive notifications
+                "to": ["anga44574@gmail.com"], # Where you want to receive notifications
                 "subject": f"New Contact Form Submission from {user_name}",
                 "html": f"""
                     <h3>New message from your Vercel Web App</h3>
