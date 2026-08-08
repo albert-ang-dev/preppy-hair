@@ -91,10 +91,7 @@
 </template>
 
 <script setup>
-import { createClient } from '@supabase/supabase-js';
-
-const config = useRuntimeConfig();
-const supabase = createClient(config.public.supabaseUrl, config.public.supabaseKey);
+const supabase = useSupabase();
 
 const route = useRoute()
 const mobileMenuOpen = ref(false)

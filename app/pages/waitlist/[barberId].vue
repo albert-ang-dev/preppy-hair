@@ -1,9 +1,7 @@
 <script setup>
-import { createClient } from '@supabase/supabase-js'
 import Swal from 'sweetalert2'
 
-const config = useRuntimeConfig();
-const supabase = createClient(config.public.supabaseUrl, config.public.supabaseKey);
+const supabase = useSupabase();
 const route = useRoute();
 const positionLine = ref(null);
 const customerName = ref("");
@@ -21,12 +19,14 @@ onMounted(async () => {
         barberName.value = barberData.barber_name;
     }
 
-    const response = await supabase.from('public_walkins').select('*').eq('barber_id', route.params.barberId).order('created_at', { ascending: true });
+    const response = await supabase.from('walkins').select('*').eq('barber_id', route.params.barberId).order('created_at', { ascending: true });
     if (response.error) {
         Swal.fire('Error', 'Failed to fetch waitlist data.', 'error');
     }else{
         const waitlistData = response.data;
-        const userIndex = waitlistData.findIndex(item => item.id === route.query.appointment_id);
+        console.log('Waitlist Data:', waitlistData); // Log the fetched data for debugging
+        
+        const userIndex = waitlistData.findIndex(item => item.id == route.query.appointment_id);
         if (userIndex !== -1) {
             const positionInLine = userIndex + 1; // +1 because array index starts at 0
             positionLine.value = positionInLine ;

@@ -1,10 +1,8 @@
 <script setup>
 import Swal from 'sweetalert2';
-import { createClient } from '@supabase/supabase-js';
 
 const loading = ref(false)
-const config = useRuntimeConfig()
-const supabase = createClient(config.public.supabaseUrl, config.public.supabaseKey)
+const supabase = useSupabase()
 const appointments = ref([]);
 
 async function refresh() {

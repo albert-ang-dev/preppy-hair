@@ -1,7 +1,5 @@
-import { createClient } from '@supabase/supabase-js';
 export default defineNuxtRouteMiddleware(async (to) => {
-  const config = useRuntimeConfig()
-  const supabase = createClient(config.public.supabaseUrl, config.public.supabaseKey)
+  const supabase = useSupabase()
   const { data: { session } } = await supabase.auth.getSession()
 
   const isPublicPath = to.path === '/login' || to.path.startsWith('/book') || to.path.startsWith('/waitlist')

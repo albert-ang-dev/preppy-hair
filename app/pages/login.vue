@@ -39,10 +39,7 @@ const handleSubmit = async () => {
 
 
 <script setup>
-import { createClient } from '@supabase/supabase-js';
-
-const config = useRuntimeConfig();
-const supabase = createClient(config.public.supabaseUrl, config.public.supabaseKey);
+const supabase = useSupabase();
 
 definePageMeta({ layout: 'blank' });
 
@@ -61,7 +58,7 @@ function login() {
         if (error) {
             errorMsg.value = error.message;
         } else {
-            navigateTo('/');
+            navigateTo('/', { replace: true });
         }
     }).finally(() => {
         loading.value = false;
