@@ -88,7 +88,7 @@ function  addWalkIn(){
   }
 }
 
-function noShowClicked(iid){
+function noShowClicked(walkins){
   Swal.fire({
     title: 'Are you sure?',
     text: "You are about to mark this appointment as a no show.",
@@ -99,12 +99,31 @@ function noShowClicked(iid){
     confirmButtonText: 'Yes, mark as no show!'
   }).then(async (result) => {
     if (result.isConfirmed) {
-      const { error } = await supabase.from('walkins').delete().eq('id', iid);
+      const { error } = await supabase.from('walkins').delete().eq('id', walkins.id);
       if (error) {
         console.error('Error updating appointment status:', error);
       } else {
         // ALERT THE CLIENT THAT THE APPOINTMENT HAS BEEN MARKED AS A NO SHOW
         Swal.fire('No Show', 'The appointment has been marked as a no show.', 'success');
+
+         try {
+          // Vercel routes '/api/send' directly to your 'api/send.py' script
+          const response = await $fetch('/api/notify', {
+            method: 'POST',
+            body: {
+              notify_type: 'walkin-no-show',
+              email: walkins.client_email,
+              name: walkins.client_name,}
+          })
+
+          if (response.success) {
+            Swal.fire('Success', 'Notification email sent successfully.', 'success');
+            // Reset form on success
+            walkInForm.value = { name: '', email: '', service: '' };
+          }
+        } catch (error) {
+          console.error('Backend submission error:', error)
+        };       
         getWalkIns(); // Refresh the walk-ins list
       }
     }else {
@@ -136,7 +155,7 @@ function noShowClicked(iid){
             <p>{{ n.client_name }}</p>
             <p>{{ n.service }}</p>
             <p>{{ n.created_at }}</p>
-            <p><button class="btn btn-info btn-sm" @click="">In Service</button> <button class="btn btn-danger btn-sm" @click="noShowClicked(n.id)">No Show</button></p>
+            <p><button class="btn btn-info btn-sm" @click="">In Service</button> <button class="btn btn-danger btn-sm" @click="noShowClicked(n)">No Show</button></p>
           </div>
         </div>
       </div>
