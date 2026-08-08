@@ -17,8 +17,8 @@ class handler(BaseHTTPRequestHandler):
         user_email = body.get("email")
         user_name = body.get("name")
         user_message = body.get("message")
-        barber_id = body.get("barberId")
-        client_appt_id = body.get("clientApptId")
+        barber_id = body.get("barber_id")
+        client_appt_id = body.get("client_appt_id")
 
         try:
             # 3. Fire the email via Resend
