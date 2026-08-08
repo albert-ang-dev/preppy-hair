@@ -6,19 +6,22 @@ const loading = ref(false)
 const config = useRuntimeConfig()
 const supabase = createClient(config.public.supabaseUrl, config.public.supabaseKey)
 const appointments = ref([]);
-onMounted(async () => {
+
+async function refresh() {
   loading.value = true
-  const { data, error } = await supabase.from('clients').select('*').eq('barber_id', (await supabase.auth.getUser()).data.user.id);
+  const { data: { user } } = await supabase.auth.getUser()
+  const { data, error } = await supabase.from('clients').select('*').eq('barber_id', user.id)
   if (error) {
     console.error('Error fetching appointments:', error)
   } else {
-    appointments.value = data;
+    appointments.value = data
   }
   loading.value = false
-})
+}
+
+onMounted(refresh)
 
 function completedButtonClick(appt) {
-  console.log('Completed button clicked for appointment:', appt);
   Swal.fire({
     title: 'Complete Appointment',
     text: 'Are you sure you want to mark this appointment as completed?',
@@ -33,13 +36,7 @@ function completedButtonClick(appt) {
         console.error('Error updating appointment status:', error);
       } else {
         Swal.fire('Completed', 'The appointment has been marked as completed.', 'success');
-        // Refresh the appointments list
-        const { data, error } = await supabase.from('clients').select('*');
-        if (error) {
-          console.error('Error fetching appointments:', error);
-        } else {
-          appointments.value = data;
-        }
+        await refresh()
       }
     }else {
       Swal.fire('Cancelled', 'The appointment was not marked as completed.', 'info');
@@ -49,7 +46,6 @@ function completedButtonClick(appt) {
 }
 
 function noShowButtonClick(appt) {
-  console.log('No Show button clicked for appointment:', appt);
   Swal.fire({
     title: 'Mark as No Show',
     text: 'Are you sure you want to mark this appointment as a no show?',
@@ -64,18 +60,59 @@ function noShowButtonClick(appt) {
         console.error('Error updating appointment status:', error);
       } else {
         Swal.fire('No Show', 'The appointment has been marked as a no show.', 'success');
-        // Refresh the appointments list
-        const { data, error } = await supabase.from('clients').select('*');
-        if (error) {
-          console.error('Error fetching appointments:', error);
-        } else {
-          appointments.value = data;
-        }
+        await refresh()
       }
     }else {
       Swal.fire('Cancelled', 'The appointment was not marked as a no show.', 'info');
     }
   });
+}
+
+async function openAppointmentCreateBox() {
+  const { value: formValues } = await Swal.fire({
+    title: 'Schedule An Appointment',
+    html:
+      '<input id="swal-client-name" class="swal2-input" placeholder="Client name">' +
+      '<input id="swal-client-email" type="email" class="swal2-input" placeholder="Client email">' +
+      '<input id="swal-service" class="swal2-input" placeholder="Service">' +
+      '<input id="swal-date" type="date" class="swal2-input">',
+    focusConfirm: false,
+    showCancelButton: true,
+    confirmButtonText: 'Schedule',
+    preConfirm: () => {
+      const client_name = document.getElementById('swal-client-name').value.trim()
+      const client_email = document.getElementById('swal-client-email').value.trim()
+      const service = document.getElementById('swal-service').value.trim()
+      const appointment_date = document.getElementById('swal-date').value
+
+      if (!client_name || !client_email || !service || !appointment_date) {
+        Swal.showValidationMessage('Please fill in all fields')
+        return false
+      }
+
+      return { client_name, client_email, service, appointment_date }
+    },
+  })
+
+  if (!formValues) return
+
+  const { data: { user } } = await supabase.auth.getUser()
+
+  const { error } = await supabase.from('clients').insert({
+    barber_id: user.id,
+    client_name: formValues.client_name,
+    client_email: formValues.client_email,
+    service: formValues.service,
+    appointment_date: formValues.appointment_date,
+    appointment_status: 0,
+  })
+
+  if (error) {
+    Swal.fire('Error', 'Failed to schedule the appointment: ' + error.message, 'error')
+  } else {
+    Swal.fire('Scheduled', 'The appointment has been created.', 'success')
+    await refresh()
+  }
 }
 
 </script>
@@ -87,29 +124,39 @@ function noShowButtonClick(appt) {
         <h1 class="brand-font h3 fw-semibold mb-1">All Scheduled Appointments</h1>
         <p class="text-muted small mb-0">{{ appointments.length }} appointments on the books</p>
       </div>
-      <button
-        type="button"
-        class="btn-icon d-flex align-items-center justify-content-center"
-        aria-label="Refresh"
-        :disabled="loading"
-        @click="refresh"
-      >
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          width="18"
-          height="18"
-          :class="{ 'spin': loading }"
+      <div class="d-flex align-items-center gap-2">
+        <button
+          type="button"
+          class="btn btn-gold btn-sm rounded-pill px-3"
+          @click="openAppointmentCreateBox"
         >
-          <polyline points="23 4 23 10 17 10" />
-          <polyline points="1 20 1 14 7 14" />
-          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
-        </svg>
-      </button>
+          Schedule An Appointment
+        </button>
+
+        <button
+          type="button"
+          class="btn-icon d-flex align-items-center justify-content-center"
+          aria-label="Refresh"
+          :disabled="loading"
+          @click="refresh"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            width="18"
+            height="18"
+            :class="{ 'spin': loading }"
+          >
+            <polyline points="23 4 23 10 17 10" />
+            <polyline points="1 20 1 14 7 14" />
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+          </svg>
+        </button>
+      </div>
     </div>
 
     <div class="bh-card p-4">

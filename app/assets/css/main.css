@@ -133,6 +133,28 @@ body {
   border-color: var(--bh-gold);
 }
 
+/* SweetAlert2 */
+
+.swal2-styled.swal2-confirm {
+  background: linear-gradient(135deg, var(--bh-gold), var(--bh-gold-dark)) !important;
+  box-shadow: none !important;
+}
+
+.swal2-styled.swal2-confirm:focus {
+  box-shadow: 0 0 0 0.2rem rgba(199, 160, 89, 0.3) !important;
+}
+
+.swal2-styled.swal2-cancel {
+  background: #ffffff !important;
+  color: var(--bh-text) !important;
+  border: 1px solid var(--bh-border) !important;
+  box-shadow: none !important;
+}
+
+.swal2-styled.swal2-cancel:focus {
+  box-shadow: 0 0 0 0.2rem rgba(199, 160, 89, 0.15) !important;
+}
+
 /* Avatar */
 
 .avatar-initial {

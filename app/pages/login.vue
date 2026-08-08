@@ -1,4 +1,4 @@
-<script setup>
+<!-- <script setup>
 import { ref } from 'vue'
 
 // Form state variables
@@ -34,39 +34,11 @@ const handleSubmit = async () => {
     isSubmitting.value = false
   }
 }
-</script>
-
-<template>
-  <div style="max-width: 400px; margin: 50px auto; font-family: sans-serif;">
-    <h2>Contact Us</h2>
-    
-    <form @submit.prevent="handleSubmit">
-      <div style="margin-bottom: 15px;">
-        <label>Name:</label>
-        <input v-model="form.name" type="text" required style="width: 100%; padding: 8px; margin-top: 5px;" />
-      </div>
-
-      <div style="margin-bottom: 15px;">
-        <label>Email:</label>
-        <input v-model="form.email" type="email" required style="width: 100%; padding: 8px; margin-top: 5px;" />
-      </div>
-
-      <div style="margin-bottom: 15px;">
-        <label>Message:</label>
-        <textarea v-model="form.message" required rows="4" style="width: 100%; padding: 8px; margin-top: 5px;"></textarea>
-      </div>
-
-      <button type="submit" :disabled="isSubmitting" style="padding: 10px 20px; cursor: pointer;">
-        {{ isSubmitting ? 'Sending...' : 'Send Message' }}
-      </button>
-    </form>
-
-    <p v-if="statusMessage" style="margin-top: 15px; font-weight: bold;">{{ statusMessage }}</p>
-  </div>
-</template>
+</script> -->
 
 
-<!--<script setup>
+
+<script setup>
 import { createClient } from '@supabase/supabase-js';
 
 const config = useRuntimeConfig();
@@ -96,9 +68,9 @@ function login() {
     });
 }
 </script>
--->
 
-<!-- 
+
+
 <template>
     <div class="login-page d-flex align-items-center justify-content-center">
         <div class="bh-card p-5 login-card">
@@ -145,7 +117,7 @@ function login() {
             </form>
         </div>
     </div>
-</template> -->
+</template>
 
 <style scoped>
 .login-page {
