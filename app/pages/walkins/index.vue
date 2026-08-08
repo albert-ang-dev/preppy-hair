@@ -131,6 +131,50 @@ function noShowClicked(walkins){
     }
   });
 }
+
+
+function inServiceClicked(walkins){
+  Swal.fire({
+    title: 'Are you sure?',
+    text: "You are about to mark this appointment as in service.",
+    icon: 'info',
+    showCancelButton: true,
+    confirmButtonColor: '#3085d6',
+    cancelButtonColor: '#d33',
+    confirmButtonText: 'Yes, mark as in service!'
+  }).then(async (result) => {
+    if (result.isConfirmed) {
+      const { error } = await supabase.from('walkins').update({ appointment_status: 2}).eq('id', walkins.id);
+      if (error) {
+        console.error('Error updating appointment status:', error);
+      } else {
+        Swal.fire('In Service', 'The appointment has been marked as in service.', 'success');
+
+         try {
+          // Vercel routes '/api/send' directly to your 'api/send.py' script
+          const response = await $fetch('/api/notify', {
+            method: 'POST',
+            body: {
+              notify_type: 'walkin-in-service',
+              email: walkins.client_email,
+              name: walkins.client_name,}
+          })
+
+          if (response.success) {
+            Swal.fire('Success', 'Notification email sent successfully.', 'success');
+            // Reset form on success
+            walkInForm.value = { name: '', email: '', service: '' };
+          }
+        } catch (error) {
+          console.error('Backend submission error:', error)
+        };               
+        getWalkIns(); // Refresh the walk-ins list
+      }
+    }else {
+      Swal.fire('Cancelled', 'The appointment was not marked as in service.', 'info');
+    }
+  });
+}
 </script>
 
 <template>
@@ -155,7 +199,7 @@ function noShowClicked(walkins){
             <p>{{ n.client_name }}</p>
             <p>{{ n.service }}</p>
             <p>{{ n.created_at }}</p>
-            <p><button class="btn btn-info btn-sm" @click="">In Service</button> <button class="btn btn-danger btn-sm" @click="noShowClicked(n)">No Show</button></p>
+            <p><button class="btn btn-info btn-sm" @click="inServiceClicked(n)">In Service</button> <button class="btn btn-danger btn-sm" @click="noShowClicked(n)">No Show</button></p>
           </div>
         </div>
       </div>
