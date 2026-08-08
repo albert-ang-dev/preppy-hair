@@ -42,7 +42,7 @@ function getWalkIns(){
 }
 
 
-async function  addWalkIn(){
+function  addWalkIn(){
   if (!walkInForm.value.name || !walkInForm.value.email || !walkInForm.value.service) {
     Swal.fire('Error', 'Please fill in all fields.', 'error');
     return;
@@ -52,7 +52,7 @@ async function  addWalkIn(){
       client_email: walkInForm.value.email,
       service: walkInForm.value.service,
       barber_id: currentUser.value.id, // Replace with the actual barber ID
-    }).then(({ data, error }) => {
+    }).then(async ({ data, error }) => {
       if (error) {
         console.error('Error adding walk-in:', error);
         Swal.fire('Error', 'Failed to add walk-in.', 'error');
