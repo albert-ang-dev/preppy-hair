@@ -42,7 +42,7 @@ function getWalkIns(){
 }
 
 
-function addWalkIn(){
+async function  addWalkIn(){
   if (!walkInForm.value.name || !walkInForm.value.email || !walkInForm.value.service) {
     Swal.fire('Error', 'Please fill in all fields.', 'error');
     return;
