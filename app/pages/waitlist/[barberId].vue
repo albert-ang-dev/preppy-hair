@@ -12,7 +12,7 @@ const barberName = ref("");
 definePageMeta({ layout: 'blank' })
 onMounted(async () => {
     const { data: barberData, error: barberError } = await supabase
-        .from('preppy_barbers')
+        .from('preppyhair_barbers')
         .select('barber_name')
         .eq('barber_id', route.params.barberId)
         .maybeSingle();
