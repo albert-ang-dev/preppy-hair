@@ -10,7 +10,9 @@ const walkInForm = ref({
   name: '',
   email: '',
   service: ''
-})
+});
+
+
 onMounted(async () => {
   const { data: { user } } = await supabase.auth.getUser()
   currentUser.value = user;
@@ -52,7 +54,7 @@ function  addWalkIn(){
       client_email: walkInForm.value.email,
       service: walkInForm.value.service,
       barber_id: currentUser.value.id, // Replace with the actual barber ID
-    }).then(async ({ data, error }) => {
+    }).then(async({ data, error }) => {
       if (error) {
         console.error('Error adding walk-in:', error);
         Swal.fire('Error', 'Failed to add walk-in.', 'error');
@@ -64,7 +66,13 @@ function  addWalkIn(){
           // Vercel routes '/api/send' directly to your 'api/send.py' script
           const response = await $fetch('/api/send', {
             method: 'POST',
-            body: walkInForm.value
+            body: {
+              name: walkInForm.value.name,
+              email: walkInForm.value.email,
+              service: walkInForm.value.service,
+              barber_id: currentUser.value.id, // Replace with the actual barber ID
+              client_appt_id: data[0].id // Replace with the actual client appointment ID
+            }
           })
 
           if (response.success) {

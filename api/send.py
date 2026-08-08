@@ -17,18 +17,20 @@ class handler(BaseHTTPRequestHandler):
         user_email = body.get("email")
         user_name = body.get("name")
         user_message = body.get("message")
-        
+        barber_id = body.get("barberId")
+        client_appt_id = body.get("clientApptId")
+
         try:
             # 3. Fire the email via Resend
             params = {
                 "from": "send@preppyhair.site", # Your verified sender email
-                "to": ["albertgibsonang@outlook.com"], # Where you want to receive notifications
+                "to": [user_email], # Where you want to receive notifications
                 "subject": f"Walk-In  {user_name}",
                 "html": f"""
-                    <h3>New message from your Vercel Web App</h3>
-                    <p><strong>Name:</strong> {user_name}</p>
-                    <p><strong>Email:</strong> {user_email}</p>
-                    <p><strong>Message:</strong> {user_message}</p>
+                    <h3>PREPPY HAIR</h3>
+                    <p>Congratulations you are now checked in!</p>
+                    <p>Please see your waitlist position.</p>
+                    <p><a href="https://preppyhair.site/waitlist/{barber_id}?customerId={client_appt_id}">View Waitlist Position</a></p>
                 """
             }
             
