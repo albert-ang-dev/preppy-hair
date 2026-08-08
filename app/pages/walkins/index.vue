@@ -54,7 +54,7 @@ function  addWalkIn(){
       client_email: walkInForm.value.email,
       service: walkInForm.value.service,
       barber_id: currentUser.value.id, // Replace with the actual barber ID
-    }).then(async({ data, error }) => {
+    }).select().then(async({ data, error }) => {
       if (error) {
         console.error('Error adding walk-in:', error);
         Swal.fire('Error', 'Failed to add walk-in.', 'error');
