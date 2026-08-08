@@ -6,24 +6,17 @@ const config = useRuntimeConfig();
 const supabase = createClient(config.public.supabaseUrl, config.public.supabaseKey);
 const walkIns = ref([]);
 const currentUser = ref(null);
-
-onMounted(async () => {
-  const { data: { user } } = await supabase.auth.getUser()
-  currentUser.value = user;
-  getWalkIns();
-  // const { data, error } = await supabase.from('walkins').select('*').eq('barber_id', user.id)
-  // if (error) {
-  //   console.error('Error fetching walk-ins:', error)
-  // } else {
-  //   walkIns.value = data;
-  // }
-})
-
 const walkInForm = ref({
   name: '',
   email: '',
   service: ''
 })
+onMounted(async () => {
+  const { data: { user } } = await supabase.auth.getUser()
+  currentUser.value = user;
+  getWalkIns();
+})
+
 
 function initials(name) {
   return name
@@ -48,6 +41,7 @@ function getWalkIns(){
   });
 }
 
+
 function addWalkIn(){
   if (!walkInForm.value.name || !walkInForm.value.email || !walkInForm.value.service) {
     Swal.fire('Error', 'Please fill in all fields.', 'error');
@@ -65,9 +59,22 @@ function addWalkIn(){
       } else {
         Swal.fire('Success', 'Walk-in added successfully.', 'success');
         getWalkIns(); // Refresh the walk-ins list
-        walkInForm.value.name = '';
-        walkInForm.value.email = '';
-        walkInForm.value.service = '';
+        
+        try {
+          // Vercel routes '/api/send' directly to your 'api/send.py' script
+          const response = await $fetch('/api/send', {
+            method: 'POST',
+            body: walkInForm.value
+          })
+
+          if (response.success) {
+            Swal.fire('Success', 'Notification email sent successfully.', 'success');
+            // Reset form on success
+            walkInForm.value = { name: '', email: '', service: '' };
+          }
+        } catch (error) {
+          console.error('Backend submission error:', error)
+        };
       }
     });
   }
