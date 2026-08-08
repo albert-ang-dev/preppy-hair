@@ -99,7 +99,7 @@ function noShowClicked(walkins){
     confirmButtonText: 'Yes, mark as no show!'
   }).then(async (result) => {
     if (result.isConfirmed) {
-      const { error } = await supabase.from('walkins').delete().eq('id', walkins.id);
+      const { error } = await supabase.from('walkins').update({ status: 2}).eq('id', walkins.id);
       if (error) {
         console.error('Error updating appointment status:', error);
       } else {
@@ -143,8 +143,8 @@ function inServiceClicked(walkins){
     cancelButtonColor: '#d33',
     confirmButtonText: 'Yes, mark as in service!'
   }).then(async (result) => {
-    if (result.isConfirmed) {
-      const { error } = await supabase.from('walkins').update({ appointment_status: 2}).eq('id', walkins.id);
+    if (result.isConfirmed) {  // [0] Checked In [1] In Service [2] No Show
+      const { error } = await supabase.from('walkins').update({ status: 1}).eq('id', walkins.id);
       if (error) {
         console.error('Error updating appointment status:', error);
       } else {
@@ -179,7 +179,6 @@ function inServiceClicked(walkins){
 
 <template>
   <div class="container-fluid">
-    <h3>Ques</h3>
 
     <div class="row">
       <div class="col-md-4 ">
@@ -192,19 +191,32 @@ function inServiceClicked(walkins){
       </div>
 
       <div class="col-md-4 ">
-        <h5>Walkins</h5>
+        <h5 class="brand-font fw-semibold mb-3">Walkins</h5>
 
         <div class="overflow-auto walkins-list-wrap">
-          <div class="card p-3 m-2" v-for="n in walkIns" :key="n.id" >
-            <p>{{ n.client_name }}</p>
-            <p>{{ n.service }}</p>
-            <p>{{ n.created_at }}</p>
-            <p><button class="btn btn-info btn-sm" @click="inServiceClicked(n)">In Service</button> <button class="btn btn-danger btn-sm" @click="noShowClicked(n)">No Show</button></p>
+          <div class="card bh-card border-0 mb-3" v-for="n in walkIns" :key="n.id">
+            <div class="card-body d-flex align-items-center gap-3">
+              <div class="avatar-initial d-flex align-items-center justify-content-center">
+                {{ initials(n.client_name) }}
+              </div>
+
+              <div class="flex-grow-1">
+                <h6 class="brand-font fw-semibold mb-1">{{ n.client_name }}</h6>
+                <p class="small text-muted mb-1">{{ n.service }}</p>
+                <p class="small text-muted mb-0">Checked in {{ n.created_at }}</p>
+              </div>
+
+              <div class="d-flex flex-column gap-2">
+                <button type="button" class="btn btn-sm btn-outline-success rounded-pill" @click="inServiceClicked(n)">In Service</button>
+                <button type="button" class="btn btn-sm btn-outline-danger rounded-pill" @click="noShowClicked(n)">No Show</button>
+              </div>
+            </div>
           </div>
+
+          <p v-if="walkIns.length === 0" class="text-center text-muted py-5 mb-0">No walk-ins yet.</p>
         </div>
       </div>
      
-
       <div class="col-md-4">
         <h5>Appointment today</h5>
         

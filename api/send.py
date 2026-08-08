@@ -30,7 +30,7 @@ class handler(BaseHTTPRequestHandler):
                     <h3>PREPPY HAIR</h3>
                     <p>Congratulations you are now checked in!</p>
                     <p>Please see your waitlist position.</p>
-                    <p><a href="https://preppyhair.site/waitlist/{barber_id}?customerId={client_appt_id}">View Waitlist Position</a></p>
+                    <p><a href="https://preppyhair.site/waitlist/{barber_id}?appointment_id={client_appt_id}">View Waitlist Position</a></p>
                 """
             }
             
