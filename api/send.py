@@ -16,7 +16,7 @@ class handler(BaseHTTPRequestHandler):
         # 2. Extract values from frontend form
         user_email = body.get("email")
         user_name = body.get("name")
-        user_message = body.get("message")
+        user_message = body.get("service")
         barber_id = body.get("barber_id")
         client_appt_id = body.get("client_appt_id")
 
