@@ -10,12 +10,13 @@ const currentUser = ref(null);
 onMounted(async () => {
   const { data: { user } } = await supabase.auth.getUser()
   currentUser.value = user;
-  const { data, error } = await supabase.from('walkins').select('*').eq('barber_id', user.id)
-  if (error) {
-    console.error('Error fetching walk-ins:', error)
-  } else {
-    walkIns.value = data;
-  }
+  getWalkIns();
+  // const { data, error } = await supabase.from('walkins').select('*').eq('barber_id', user.id)
+  // if (error) {
+  //   console.error('Error fetching walk-ins:', error)
+  // } else {
+  //   walkIns.value = data;
+  // }
 })
 
 const walkInForm = ref({
@@ -39,6 +40,10 @@ function getWalkIns(){
       console.error('Error fetching walk-ins:', error);
     } else {
       walkIns.value = data;
+      for(let i=0; i<walkIns.value.length; i++){
+        const dbTimestamp = new Date(walkIns.value[i].created_at);
+        walkIns.value[i].created_at = dbTimestamp.toLocaleString();
+      }
     }
   });
 }
@@ -115,6 +120,7 @@ function noShowClicked(iid){
           <div class="card p-3 m-2" v-for="n in walkIns" :key="n.id" >
             <p>{{ n.client_name }}</p>
             <p>{{ n.service }}</p>
+            <p>{{ n.created_at }}</p>
             <p><button class="btn btn-info btn-sm" @click="">In Service</button> <button class="btn btn-danger btn-sm" @click="noShowClicked(n.id)">No Show</button></p>
           </div>
         </div>

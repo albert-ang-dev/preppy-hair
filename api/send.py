@@ -21,9 +21,9 @@ class handler(BaseHTTPRequestHandler):
         try:
             # 3. Fire the email via Resend
             params = {
-                "from": "Contact Form <onboarding@resend.dev>",
-                "to": ["anga44574@gmail.com"], # Where you want to receive notifications
-                "subject": f"New Contact Form Submission from {user_name}",
+                "from": "send@preppyhair.site", # Your verified sender email
+                "to": ["albertgibsonang@outlook.com"], # Where you want to receive notifications
+                "subject": f"Walk-In  {user_name}",
                 "html": f"""
                     <h3>New message from your Vercel Web App</h3>
                     <p><strong>Name:</strong> {user_name}</p>
