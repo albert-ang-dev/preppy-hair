@@ -55,6 +55,8 @@ function  addWalkIn(){
             Swal.fire('Success', 'Notification email sent successfully.', 'success');
             // Reset form on success
             walkInForm.value = { name: '', email: '', service: '' };
+          }else{
+            consolelog(response.error);
           }
         } catch (error) {
           console.error('Backend submission error:', error)
