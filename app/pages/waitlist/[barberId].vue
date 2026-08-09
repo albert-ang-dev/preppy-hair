@@ -19,7 +19,7 @@ onMounted(async () => {
         barberName.value = barberData.barber_name;
     }
 
-    const response = await supabase.from('walkins').select('*').eq('barber_id', route.params.barberId).order('created_at', { ascending: true });
+    const response = await supabase.from('walkins').select('*').eq('barber_id', route.params.barberId).eq('status',2).order('created_at', { ascending: true });
     if (response.error) {
         Swal.fire('Error', 'Failed to fetch waitlist data.', 'error');
     }else{

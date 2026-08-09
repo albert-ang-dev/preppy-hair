@@ -3,7 +3,9 @@
       [0] Waiting for confirmation
       [1] Confirm
       [2] Checked In
-      [3] No Show
+      [3] In-Service
+      [4] No Show
+      [5] Cancel
 */
 
 import Swal from 'sweetalert2';
@@ -12,11 +14,6 @@ const supabase = useSupabase();
 const walkIns = ref([]);
 const todaysAppointments = ref([]);
 const currentUser = ref(null);
-const walkInForm = ref({
-  name: '',
-  email: '',
-  service: ''
-});
 
 
 onMounted(async () => {
@@ -40,7 +37,7 @@ function getTodaysAppointments(){
     .select('*')
     .eq('barber_id', currentUser.value.id)
     .eq('appointment_date', todayDateKey())
-    .eq('status', 0)
+    .eq('status', 1)
     .then(({ data, error }) => {
       if (error) {
         console.error('Error fetching today\'s appointments:', error);
@@ -85,7 +82,7 @@ function appointmentNoShowClicked(appt){
     confirmButtonText: 'Yes, mark as no show!'
   }).then(async (result) => {
     if (result.isConfirmed) {
-      const { error } = await supabase.from('appointments').update({ appointment_status: 3 }).eq('id', appt.id);
+      const { error } = await supabase.from('appointments').update({ appointment_status: 4 }).eq('id', appt.id);
       if (error) {
         console.error('Error marking appointment as no show:', error);
       } else {
@@ -123,49 +120,6 @@ function getWalkIns(){
 }
 
 
-function  addWalkIn(){
-  if (!walkInForm.value.name || !walkInForm.value.email || !walkInForm.value.service) {
-    Swal.fire('Error', 'Please fill in all fields.', 'error');
-    return;
-  }else{
-    supabase.from('walkins').insert({
-      client_name: walkInForm.value.name,
-      client_email: walkInForm.value.email,
-      service: walkInForm.value.service,
-      barber_id: currentUser.value.id, // Replace with the actual barber ID
-    }).select().then(async({ data, error }) => {
-      if (error) {
-        console.error('Error adding walk-in:', error);
-        Swal.fire('Error', 'Failed to add walk-in.', 'error');
-      } else {
-        Swal.fire('Success', 'Walk-in added successfully.', 'success');
-        getWalkIns(); // Refresh the walk-ins list
-        
-        try {
-          // Vercel routes '/api/send' directly to your 'api/send.py' script
-          const response = await $fetch('/api/send', {
-            method: 'POST',
-            body: {
-              name: walkInForm.value.name,
-              email: walkInForm.value.email,
-              service: walkInForm.value.service,
-              barber_id: currentUser.value.id, // Replace with the actual barber ID
-              client_appt_id: data[0].id // Replace with the actual client appointment ID
-            }
-          })
-
-          if (response.success) {
-            Swal.fire('Success', 'Notification email sent successfully.', 'success');
-            // Reset form on success
-            walkInForm.value = { name: '', email: '', service: '' };
-          }
-        } catch (error) {
-          console.error('Backend submission error:', error)
-        };
-      }
-    });
-  }
-}
 
 function noShowClicked(walkins){
   Swal.fire({
@@ -178,7 +132,7 @@ function noShowClicked(walkins){
     confirmButtonText: 'Yes, mark as no show!'
   }).then(async (result) => {
     if (result.isConfirmed) {
-      const { error } = await supabase.from('walkins').update({ status: 3}).eq('id', walkins.id);
+      const { error } = await supabase.from('walkins').update({ status: 4}).eq('id', walkins.id);
       if (error) {
         console.error('Error updating appointment status:', error);
       } else {
@@ -223,33 +177,27 @@ function inServiceClicked(walkins){
     confirmButtonText: 'Yes, mark as in service!'
   }).then(async (result) => {
     if (result.isConfirmed) {
-    
-        try {
-          // Vercel routes '/api/send' directly to your 'api/send.py' script
-          const response = await $fetch('/api/notify', {
-            method: 'POST',
-            body: {
-              notify_type: 'walkin-in-service',
-              email: walkins.client_email,
-              name: walkins.client_name,}
-          })
+         const result = await supabase.from('walkins').update({ status: 4}).eq('id', walkins.id);
+         if(result.error == null){
+            try {
+              // Vercel routes '/api/send' directly to your 'api/send.py' script
+              const response = await $fetch('/api/notify', {
+                method: 'POST',
+                body: {
+                  notify_type: 'walkin-in-service',
+                  email: walkins.client_email,
+                  name: walkins.client_name,}
+              });
 
-          if (response.success) {
-            Swal.fire('Success', 'Notification email sent successfully.', 'success');
-            // Reset form on success
-            walkInForm.value = { name: '', email: '', service: '' };
-            supabase.from('walkins').delete().eq('id', walkins.id).then(({ error }) => {
-              if (error) {
-                console.error('Error deleting walk-in:', error);
-              } else {
-                Swal.fire('In Service', 'The appointment has been marked as in service.', 'success');
-                getWalkIns(); // Refresh the walk-ins list
+              if (response.success) {
+                Swal.fire('Success', 'Notification email sent successfully.', 'success');
               }
-            });
-          }
-        } catch (error) {
-          console.error('Backend submission error:', error)
-        };               
+            } catch (error) {
+              console.error('Backend submission error:', error)
+            };
+            console.log("GOOD!");
+         };
+               
         getWalkIns(); // Refresh the walk-ins list
         
     }
@@ -287,7 +235,7 @@ function inServiceClicked(walkins){
             </div>
           </div>
 
-          <p v-if="walkIns.length === 0" class="text-center text-muted py-5 mb-0">No walk-ins yet.</p>
+          <p v-if="walkIns.length === 0" class="text-center text-muted py-5 mb-0">No check in yet.</p>
         </div>
       </div>
      

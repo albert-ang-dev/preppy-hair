@@ -1,4 +1,12 @@
 <script setup>
+/*
+      [0] Waiting for confirmation
+      [1] Confirm
+      [2] Checked In
+      [3] In-Service
+      [4] No Show
+      [5] Cancel
+*/
 import Swal from 'sweetalert2'
 
 const supabase = useSupabase()
@@ -11,6 +19,7 @@ onMounted(async () => {
   const { data: { user } } = await supabase.auth.getUser();
   currentUser.value = user;
 })
+
 function  addWalkIn(){
   if (!walkInForm.value.name || !walkInForm.value.email || !walkInForm.value.service) {
     Swal.fire('Error', 'Please fill in all fields.', 'error');
@@ -21,6 +30,7 @@ function  addWalkIn(){
       client_email: walkInForm.value.email,
       service: walkInForm.value.service,
       barber_id: currentUser.value.id, // Replace with the actual barber ID
+      status:2
     }).select().then(async({ data, error }) => {
       if (error) {
         console.error('Error adding walk-in:', error);
@@ -53,6 +63,7 @@ function  addWalkIn(){
     });
   }
 }
+
 async function addAppointment() {
   if (!appointmentForm.value.name || !appointmentForm.value.email || !appointmentForm.value.service || !appointmentForm.value.date) {
     Swal.fire('Error', 'Please fill in all fields.', 'error')
