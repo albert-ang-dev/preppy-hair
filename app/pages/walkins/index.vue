@@ -151,8 +151,6 @@ function noShowClicked(walkins){
 
           if (response.success) {
             Swal.fire('Success', 'Notification email sent successfully.', 'success');
-            // Reset form on success
-            walkInForm.value = { name: '', email: '', service: '' };
           }
         } catch (error) {
           console.error('Backend submission error:', error)
