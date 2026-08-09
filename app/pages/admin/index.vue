@@ -37,7 +37,6 @@ function  addWalkIn(){
         Swal.fire('Error', 'Failed to add walk-in.', 'error');
       } else {
         Swal.fire('Success', 'Walk-in added successfully.', 'success');
-        getWalkIns(); // Refresh the walk-ins list
         
         try {
           // Vercel routes '/api/send' directly to your 'api/send.py' script
