@@ -48,6 +48,7 @@ function  addWalkIn(){
               email: walkInForm.value.email,
               service: walkInForm.value.service,
               barber_id: currentUser.value.id, // Replace with the actual barber ID
+              client_appt_id: data.id
             }
           })
 
