@@ -1,4 +1,12 @@
 <script setup>
+/*
+      [0] Waiting for confirmation
+      [1] Confirm
+      [2] Checked In
+      [3] In-Service
+      [4] No Show
+      [5] Cancel
+*/
 import Swal from 'sweetalert2';
 
 const loading = ref(false)
@@ -8,14 +16,14 @@ const appointments = ref([]);
 async function refresh() {
   loading.value = true
   const { data: { user } } = await supabase.auth.getUser()
-  const { data, error } = await supabase.from('clients').select('*').eq('barber_id', user.id)
+  const { data, error } = await supabase.from('appointments').select('*').eq('barber_id', user.id)
   if (error) {
     console.error('Error fetching appointments:', error)
   } else {
     appointments.value = data
   }
   loading.value = false
-}
+}    
 
 onMounted(refresh)
 
@@ -29,7 +37,7 @@ function completedButtonClick(appt) {
     cancelButtonText: 'Cancel',
   }).then(async (result) => {
     if (result.isConfirmed) {
-      const { error } = await supabase.from('clients').update({ appointment_status: 1}).eq('id', appt.id);
+      const { error } = await supabase.from('clients').update({ appointment_status: 5}).eq('id', appt.id);
       if (error) {
         console.error('Error updating appointment status:', error);
       } else {
@@ -43,25 +51,25 @@ function completedButtonClick(appt) {
 
 }
 
-function noShowButtonClick(appt) {
+function cancelAppointment(appt){
   Swal.fire({
-    title: 'Mark as No Show',
-    text: 'Are you sure you want to mark this appointment as a no show?',
-    icon: 'warning',
-    showCancelButton: false,
-    confirmButtonText: 'Yes, mark as no show',
-    cancelButtonText: 'Cancel',
+    title: 'Cancel Appointmeny',
+    text: 'Are you sure you want to cancel this appointment?',
+    icon: 'info',
+    showCancelButton: true,
+    confirmButtonText: 'Yes, cancel appointment',
+    cancelButtonText: 'No',
   }).then(async (result) => {
     if (result.isConfirmed) {
-      const { error } = await supabase.from('clients').delete().eq('id', appt.id);
+      const { error } = await supabase.from('clients').update({ appointment_status: 4}).eq('id', appt.id);
       if (error) {
         console.error('Error updating appointment status:', error);
       } else {
-        Swal.fire('No Show', 'The appointment has been marked as a no show.', 'success');
+        Swal.fire('Completed', 'The appointment has been marked as completed.', 'success');
         await refresh()
       }
     }else {
-      Swal.fire('Cancelled', 'The appointment was not marked as a no show.', 'info');
+      Swal.fire('Cancelled', 'The appointment was not marked as completed.', 'info');
     }
   });
 }
@@ -123,13 +131,6 @@ async function openAppointmentCreateBox() {
         <p class="text-muted small mb-0">{{ appointments.length }} appointments on the books</p>
       </div>
       <div class="d-flex align-items-center gap-2">
-        <button
-          type="button"
-          class="btn btn-gold btn-sm rounded-pill px-3"
-          @click="openAppointmentCreateBox"
-        >
-          Schedule An Appointment
-        </button>
 
         <button
           type="button"
@@ -174,7 +175,6 @@ async function openAppointmentCreateBox() {
               <th scope="col">Client</th>
               <th scope="col">Service</th>
               <th scope="col">Date</th>
-              <th scope="col">Time</th>
               <th scope="col">Status</th>
               <th scope="col" class="text-end"></th>
             </tr>
@@ -189,27 +189,30 @@ async function openAppointmentCreateBox() {
               </td>
               <td>{{ appt.service }}</td>
               <td>{{ appt.appointment_date }}</td>
-              <td>{{ appt.appointment_time }}</td>
               <td>
-                <span class="badge-status" v-if="appt.appointment_status === 0">Scheduled</span>
-                <span class="badge-status" v-else-if="appt.appointment_status === 1">Completed</span>
-                <span class="badge-status" v-else>No Show</span>
+                <span class="badge-status" v-if="appt.status === 0">Waiting for confirmation</span>
+                <span class="badge-status" v-else-if="appt.status === 1">Confirmed</span>
+                <span class="badge-status" v-else-if="appt.status === 2">Checked In</span>
+                <span class="badge-status" v-else-if="appt.status === 3">In Service</span>
+                <span class="badge-status" v-else-if="appt.status === 4">No Show</span>
+                <span class="badge-status" v-else>Canceled</span>
               </td>
               <td class="text-end">
                 <button
+                  v-if="appt.status==1"
                   type="button"
                   class="btn btn-sm btn-outline-success rounded-pill me-2"
                   @click="completedButtonClick(appt)"
                 >
-                  Aprove
+                  Notify
                 </button>
 
                 <button
                   type="button"
                   class="btn btn-sm btn-outline-danger rounded-pill"
-                  @click="noShowButtonClick(appt)"
+                  @click="cancelAppointment(appt)"
                 >
-                  Decline
+                  Cancel
                 </button>
               </td>
             </tr>

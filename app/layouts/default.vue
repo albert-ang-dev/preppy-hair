@@ -18,6 +18,16 @@
       </NuxtLink>
 
       <NuxtLink
+        to="/admin"
+        class="sidebar-link d-flex align-items-center justify-content-center"
+        :class="{ active: route.path === '/admin' }"
+        aria-label="Add Walk-Ins"
+        title="Add Walk-Ins"
+      >
+        <i class="bi bi-person-add"></i>
+      </NuxtLink>
+
+      <NuxtLink
         to="/appointments"
         class="sidebar-link d-flex align-items-center justify-content-center"
         :class="{ active: route.path.startsWith('/appointments') }"
@@ -34,7 +44,7 @@
         aria-label="Walk-ins"
         title="Walk-ins"
       >
-        <i class="bi bi-people"></i>
+        <i class="bi bi-book"></i>
       </NuxtLink>
 
       <button

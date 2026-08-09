@@ -1,8 +1,16 @@
 <script setup>
+/*
+      [0] Waiting for confirmation
+      [1] Confirm
+      [2] Checked In
+      [3] No Show
+*/
+
 import Swal from 'sweetalert2';
 
 const supabase = useSupabase();
 const walkIns = ref([]);
+const todaysAppointments = ref([]);
 const currentUser = ref(null);
 const walkInForm = ref({
   name: '',
@@ -15,7 +23,80 @@ onMounted(async () => {
   const { data: { user } } = await supabase.auth.getUser()
   currentUser.value = user;
   getWalkIns();
+  getTodaysAppointments();
 })
+
+function todayDateKey() {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function getTodaysAppointments(){
+  supabase
+    .from('appointments')
+    .select('*')
+    .eq('barber_id', currentUser.value.id)
+    .eq('appointment_date', todayDateKey())
+    .eq('status', 0)
+    .then(({ data, error }) => {
+      if (error) {
+        console.error('Error fetching today\'s appointments:', error);
+      } else {
+        todaysAppointments.value = data;
+      }
+    });
+}
+
+function appointmentCheckInClicked(appt){
+  Swal.fire({
+    title: 'Are you sure?',
+    text: `Check in ${appt.client_name}?`,
+    icon: 'info',
+    showCancelButton: true,
+    confirmButtonColor: '#3085d6',
+    cancelButtonColor: '#d33',
+    confirmButtonText: 'Yes, check in!'
+  }).then(async (result) => {
+    if (result.isConfirmed) {
+      const { error } = await supabase.from('appointments').update({ appointment_status: 2 }).eq('id', appt.id);
+      if (error) {
+        console.error('Error checking in appointment:', error);
+      } else {
+        Swal.fire('Checked In', `${appt.client_name} has been checked in.`, 'success');
+        getTodaysAppointments();
+      }
+    } else {
+      Swal.fire('Cancelled', 'The appointment was not checked in.', 'info');
+    }
+  });
+}
+
+function appointmentNoShowClicked(appt){
+  Swal.fire({
+    title: 'Are you sure?',
+    text: `Mark ${appt.client_name} as a no show?`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#3085d6',
+    cancelButtonColor: '#d33',
+    confirmButtonText: 'Yes, mark as no show!'
+  }).then(async (result) => {
+    if (result.isConfirmed) {
+      const { error } = await supabase.from('appointments').update({ appointment_status: 3 }).eq('id', appt.id);
+      if (error) {
+        console.error('Error marking appointment as no show:', error);
+      } else {
+        Swal.fire('No Show', `${appt.client_name} has been marked as a no show.`, 'success');
+        getTodaysAppointments();
+      }
+    } else {
+      Swal.fire('Cancelled', 'The appointment was not marked as a no show.', 'info');
+    }
+  });
+}
 
 
 function initials(name) {
@@ -28,7 +109,7 @@ function initials(name) {
 }
 
 function getWalkIns(){
-  supabase.from('walkins').select('*').eq('barber_id', currentUser.value.id).then(({ data, error }) => {
+  supabase.from('walkins').select('*').eq('barber_id', currentUser.value.id).eq('status', 2).then(({ data, error }) => {
     if (error) {
       console.error('Error fetching walk-ins:', error);
     } else {
@@ -97,7 +178,7 @@ function noShowClicked(walkins){
     confirmButtonText: 'Yes, mark as no show!'
   }).then(async (result) => {
     if (result.isConfirmed) {
-      const { error } = await supabase.from('walkins').update({ status: 2}).eq('id', walkins.id);
+      const { error } = await supabase.from('walkins').update({ status: 3}).eq('id', walkins.id);
       if (error) {
         console.error('Error updating appointment status:', error);
       } else {
@@ -141,14 +222,9 @@ function inServiceClicked(walkins){
     cancelButtonColor: '#d33',
     confirmButtonText: 'Yes, mark as in service!'
   }).then(async (result) => {
-    if (result.isConfirmed) {  // [0] Checked In [1] In Service [2] No Show
-      const { error } = await supabase.from('walkins').update({ status: 1}).eq('id', walkins.id);
-      if (error) {
-        console.error('Error updating appointment status:', error);
-      } else {
-        Swal.fire('In Service', 'The appointment has been marked as in service.', 'success');
-
-         try {
+    if (result.isConfirmed) {
+    
+        try {
           // Vercel routes '/api/send' directly to your 'api/send.py' script
           const response = await $fetch('/api/notify', {
             method: 'POST',
@@ -162,15 +238,23 @@ function inServiceClicked(walkins){
             Swal.fire('Success', 'Notification email sent successfully.', 'success');
             // Reset form on success
             walkInForm.value = { name: '', email: '', service: '' };
+            supabase.from('walkins').delete().eq('id', walkins.id).then(({ error }) => {
+              if (error) {
+                console.error('Error deleting walk-in:', error);
+              } else {
+                Swal.fire('In Service', 'The appointment has been marked as in service.', 'success');
+                getWalkIns(); // Refresh the walk-ins list
+              }
+            });
           }
         } catch (error) {
           console.error('Backend submission error:', error)
         };               
         getWalkIns(); // Refresh the walk-ins list
-      }
-    }else {
-      Swal.fire('Cancelled', 'The appointment was not marked as in service.', 'info');
+        
     }
+
+
   });
 }
 </script>
@@ -179,29 +263,9 @@ function inServiceClicked(walkins){
   <div class="container-fluid">
 
     <div class="row">
-      <div class="col-md-4 ">
-        <div class="bh-card p-4">
-          <h5 class="brand-font fw-semibold mb-3">Add Walk-In</h5>
-          <form @submit.prevent="addWalkIn">
-            <div class="mb-3">
-              <label class="form-label small fw-semibold">Client Name</label>
-              <input type="text" class="form-control bh-input" placeholder="Enter client name" required v-model="walkInForm.name">
-            </div>
-            <div class="mb-3">
-              <label class="form-label small fw-semibold">Client Email</label>
-              <input type="email" class="form-control bh-input" placeholder="Enter client email" required v-model="walkInForm.email">
-            </div>
-            <div class="mb-4">
-              <label class="form-label small fw-semibold">Service</label>
-              <input type="text" class="form-control bh-input" placeholder="Enter service" required v-model="walkInForm.service">
-            </div>
-            <button type="submit" class="btn btn-gold rounded-pill w-100 py-2">Add Walk-In</button>
-          </form>
-        </div>
-      </div>
 
-      <div class="col-md-4 ">
-        <h5 class="brand-font fw-semibold mb-3">Walkins</h5>
+      <div class="col-md-6 ">
+        <h5 class="brand-font fw-semibold mb-3">Walkins / Checked Ins</h5>
 
         <div class="overflow-auto walkins-list-wrap">
           <div class="card bh-card border-0 mb-3" v-for="n in walkIns" :key="n.id">
@@ -227,14 +291,31 @@ function inServiceClicked(walkins){
         </div>
       </div>
      
-      <div class="col-md-4">
-        <h5>Appointment today</h5>
-        
+      <div class="col-md-6">
+        <h5 class="brand-font fw-semibold mb-3">Appointment today</h5>
+
         <div class="overflow-auto walkins-list-wrap">
-          <div class="card p-3 m-2" v-for="n in 20">
-            <p>Hello WOrld</p>
+          <div class="card bh-card border-0 mb-3" v-for="appt in todaysAppointments" :key="appt.id">
+            <div class="card-body d-flex align-items-center gap-3">
+              <div class="avatar-initial d-flex align-items-center justify-content-center">
+                {{ initials(appt.client_name) }}
+              </div>
+
+              <div class="flex-grow-1">
+                <h6 class="brand-font fw-semibold mb-1">{{ appt.client_name }}</h6>
+                <p class="small text-muted mb-1">{{ appt.service }}</p>
+                <p class="small text-muted mb-0">{{ appt.appointment_time }}</p>
+              </div>
+
+              <div class="d-flex flex-column gap-2">
+                <button type="button" class="btn btn-sm btn-outline-success rounded-pill" @click="appointmentCheckInClicked(appt)">Check In</button>
+                <button type="button" class="btn btn-sm btn-outline-danger rounded-pill" @click="appointmentNoShowClicked(appt)">No Show</button>
+              </div>
+            </div>
           </div>
-        </div>        
+
+          <p v-if="todaysAppointments.length === 0" class="text-center text-muted py-5 mb-0">No appointments today.</p>
+        </div>
       </div>
       
     </div>
