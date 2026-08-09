@@ -31,6 +31,12 @@ onMounted(async () => {
             const positionInLine = userIndex + 1; // +1 because array index starts at 0
             positionLine.value = positionInLine ;
             customerName.value = waitlistData[userIndex].client_name;
+        }else{
+          Swal.fire({
+            title:"OOPS!",
+            text: "We can not find any record. Please check your email",
+            icon:"error"
+          })
         }
     }
 

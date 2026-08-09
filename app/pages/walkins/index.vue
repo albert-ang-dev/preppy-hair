@@ -120,7 +120,6 @@ function getWalkIns(){
 }
 
 
-
 function noShowClicked(walkins){
   Swal.fire({
     title: 'Are you sure?',
