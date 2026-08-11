@@ -95,9 +95,8 @@ async function addAppointment() {
             body: {
               name:  appointmentForm.value.name,
               email:  appointmentForm.value.email,
-              barber_id: currentUser.value.id,
               appt_date:appointmentForm.value.date,
-              client_appt_id: data[0].id
+              appt_id: data[0].id
             }
           })
 
