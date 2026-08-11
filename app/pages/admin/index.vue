@@ -72,14 +72,14 @@ async function addAppointment() {
     return
   }
 
-  const { error } = await supabase.from('appointments').insert({
+  const { data, error } = await supabase.from('appointments').insert({
     client_name: appointmentForm.value.name,
     client_email: appointmentForm.value.email,
     service: appointmentForm.value.service,
     appointment_date: appointmentForm.value.date,
     barber_id: currentUser.value.id,
     status: 0,
-  })
+  }).select()
 
   if (error) {
     console.error('Error adding appointment:', error)
