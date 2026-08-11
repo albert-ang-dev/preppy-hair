@@ -5,10 +5,12 @@ const loading = ref(false)
 const saving = ref(false)
 const saveMessage = ref('')
 const currentUser = ref(null)
+const barberLink = ref("");
 
 onMounted(async () => {
   const { data: { user } } = await supabase.auth.getUser()
-  currentUser.value = user
+  currentUser.value = user;
+  barberLink.value = "http://api.qrserver.com/v1/create-qr-code/?data=https://preppyhair.site/qrwalkin?barberid="+currentUser.id + "&size=100x100";
 });
 </script>
 
@@ -34,6 +36,9 @@ onMounted(async () => {
         <p class="mb-0 fw-medium">{{ currentUser.phone || 'Not set' }}</p>
       </div>
     </div>
+
+    <h4>Your QR CODE</h4>
+    <p><img :src="barberLink" alt=""></p>
   </div>
 </template>
 

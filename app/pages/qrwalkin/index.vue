@@ -1,14 +1,92 @@
 <script setup>
-const supabase = useSupabase();
+
+const route = useRoute();
+const supabase = useSupabase()
+const checkin_result = ref("");
+
 
 definePageMeta({ layout: 'blank' });
 
+const form = ref({
+  name: '',
+  email: '',
+  service: ''
+});
+const barber = route.query.barberid;
+
+async function submitCheckIn() {
+  // TODO: wire up backend submission
+  await supabase.from("walkins").insert({
+    client_name:form.value.name,
+    client_email:form.value.email,
+    service: form.value.service,
+    barber_id: barber,
+    status:2
+  }).select().then(async({ data, error }) => {
+    if(error){
+        checkin_result.value = "Something went wrong, try again";
+    }else{
+        checkin_result.value = "You are now checked in!";
+    }
+
+    form.value = {name:"",email:"",service:""}
+  });
+}
 </script>
 
 <template>
-    <h1>Hello World</h1>
+  <div class="checkin-page d-flex align-items-center justify-content-center">
+    <div class="bh-card p-5 checkin-card">
+      <div class="d-flex flex-column align-items-center text-center mb-4">
+        <div class="sidebar-mark d-flex align-items-center justify-content-center mb-3">
+          <i class="bi bi-scissors"></i>
+        </div>
+        <div class="topbar-eyebrow text-uppercase fw-semibold">Preppy Hair Studio</div>
+        <h1 class="brand-font fs-3 fw-semibold mb-0">Check In</h1>
+        <p class="text-muted small mb-0">Enter your info to join the walk-in queue</p>
+      </div>
+
+      <form @submit.prevent="submitCheckIn">
+        <div class="mb-3">
+          <label class="form-label small fw-semibold">Name</label>
+          <input type="text" class="form-control bh-input" placeholder="Enter your name" required v-model="form.name">
+        </div>
+        <div class="mb-3">
+          <label class="form-label small fw-semibold">Email</label>
+          <input type="email" class="form-control bh-input" placeholder="Enter your email" required v-model="form.email">
+        </div>
+        <div class="mb-4">
+          <label class="form-label small fw-semibold">Service</label>
+          <input type="text" class="form-control bh-input" placeholder="Enter service" required v-model="form.service">
+        </div>
+        <button type="submit" class="btn btn-gold rounded-pill w-100 py-2">Check In</button>
+      </form>
+
+      <p>{{ checkin_result }}</p>
+    </div>
+  </div>
 </template>
 
 <style scoped>
+.checkin-page {
+  min-height: 100vh;
+  background-color: var(--bh-bg);
+  padding: 1.5rem;
+}
 
+.checkin-card {
+  width: 100%;
+  max-width: 400px;
+}
+
+.bh-input {
+  border: 1px solid var(--bh-border);
+  border-radius: 10px;
+  padding: 0.6rem 0.85rem;
+}
+
+.bh-input:focus {
+  border-color: var(--bh-gold);
+  box-shadow: 0 0 0 0.2rem rgba(199, 160, 89, 0.2);
+}
 </style>

@@ -7,12 +7,14 @@
       [4] No Show
       [5] Cancel
 */
+
 import Swal from 'sweetalert2';
 
 const loading = ref(false)
 const supabase = useSupabase()
 const appointments = ref([]);
 const emailFilter = ref('');
+const curr = ref(null);
 
 const filteredAppointments = computed(() => {
   const query = emailFilter.value.trim().toLowerCase()
@@ -23,7 +25,8 @@ const filteredAppointments = computed(() => {
 async function refresh() {
   loading.value = true
   const { data: { user } } = await supabase.auth.getUser()
-  const { data, error } = await supabase.from('appointments').select('*').eq('barber_id', user.id).neq("status",4);
+  curr.value = user;
+  const { data, error } = await supabase.from('appointments').select('*').eq('barber_id', user.id).neq("status",5);
   if (error) {
     console.error('Error fetching appointments:', error)
   } else {
@@ -49,7 +52,7 @@ function cancelAppointment(appt){
       if (error) {
         console.error('Error updating appointment status:', error);
       } else {
-        Swal.fire('Completed', 'The appointment has been marked as deleted.', 'success');
+        Swal.fire('Cancelled', 'The appointment has been marked as deleted.', 'warning');
         await refresh()
       }
     }else {
@@ -58,7 +61,68 @@ function cancelAppointment(appt){
   });
 }
 
+function checkinAppointment(appt){
+  // add the record to walkins and then delete the record from appointments
+  Swal.fire({
+    title: 'Check In Appointment',
+    text: 'Are you sure you want to check in this appointment?',
+    icon: 'info',
+    showCancelButton: true,
+    confirmButtonText: 'Yes, checkin appointment',
+    cancelButtonText: 'No',
+  }).then(async (result) => {
+    if (result.isConfirmed) {
+      supabase.from("walkins").insert({
+      client_name:appt.client_name,
+      client_email: appt.client_email,
+      service: appt.service,
+      barber_id: curr.value.id, // Replace with the actual barber ID
+      status:2        
+      }).then(async({ data, error }) => {
+        console.log(appt);
+        if(error == null){
+          const {error} = await supabase.from("appointments").delete().eq("id",appt.id);
+          if(error){
+            Swal.fire('OOPS', 'Unable to check in, please try again', 'error');
+          }else{
+            Swal.fire('Success', 'It is now checked in!', 'success');
+            await refresh();
 
+            try {
+              // Vercel routes '/api/send' directly to your 'api/send.py' script
+              const response = await $fetch('/api/send', {
+                method: 'POST',
+                body: {
+                  name: appt.client_name,
+                  email: appt.client_email,
+                  service: appt.service,
+                  barber_id: curr.value.id,
+                  client_appt_id: data[0].id
+                }
+              })
+
+              if (response.success) {
+                Swal.fire('Success', 'Notification email sent successfully.', 'success');
+                // Reset form on success
+                walkInForm.value = { name: '', email: '', service: '' };
+              }else{
+                consolelog(response.error);
+              }
+            } catch (error) {
+              console.error('Backend submission error:', error);
+            };            
+
+          }
+          
+        }else{
+          console.log(error);
+        }
+      })
+    }else {
+      Swal.fire('Cancelled', 'The appointment was not marked as checked in.', 'info');
+    }
+  });  
+}
 </script>
 
 <template>
@@ -152,7 +216,7 @@ function cancelAppointment(appt){
                 v-if="appt.status==1"
                   type="button"
                   class="btn btn-sm btn-outline-info rounded-pill me-2"
-                  @click="cancelAppointment(appt)"
+                  @click="checkinAppointment(appt)"
                 >
                   Check In
                 </button>
