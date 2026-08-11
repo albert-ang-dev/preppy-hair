@@ -93,6 +93,7 @@ async function addAppointment() {
           const response = await $fetch('/api/notify', {
             method: 'POST',
             body: {
+              notify_type: "appointment-created",
               name:  appointmentForm.value.name,
               email:  appointmentForm.value.email,
               appt_date:appointmentForm.value.date,
