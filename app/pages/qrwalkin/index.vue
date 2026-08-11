@@ -13,6 +13,18 @@ const form = ref({
   service: ''
 });
 const barber = route.query.barberid;
+const barberName = ref("");
+
+onMounted(async () =>{
+    await supabase.from("preppyhair_barbers").select("*").eq("barber_id",barber).then(async({ data, error }) => {
+        if(error){
+
+        }else{
+            barberName.value = data[0].barber_name;
+        }
+    });
+
+})
 
 async function submitCheckIn() {
   // TODO: wire up backend submission
@@ -47,6 +59,7 @@ async function submitCheckIn() {
       </div>
 
       <form @submit.prevent="submitCheckIn">
+        <h4>{{ barberName }}</h4>
         <div class="mb-3">
           <label class="form-label small fw-semibold">Name</label>
           <input type="text" class="form-control bh-input" placeholder="Enter your name" required v-model="form.name">
