@@ -4,10 +4,11 @@ const supabase = useSupabase();
 const loading = ref(false)
 const saving = ref(false)
 const saveMessage = ref('')
+const currentUser = ref(null)
 
 onMounted(async () => {
   const { data: { user } } = await supabase.auth.getUser()
-  
+  currentUser.value = user
 });
 </script>
 
@@ -19,7 +20,20 @@ onMounted(async () => {
       Use the sidebar to review today's schedule, check in appointments, and keep the chairs full.
     </p>
 
-
+    <div v-if="currentUser" class="account-info">
+      <div class="mb-2">
+        <span class="text-muted small">User ID</span>
+        <p class="mb-0 fw-medium">{{ currentUser.id }}</p>
+      </div>
+      <div class="mb-2">
+        <span class="text-muted small">Display Name</span>
+        <p class="mb-0 fw-medium">{{ currentUser.user_metadata?.display_name || 'Not set' }} <button class="btn btn-warning"><i class="bi bi-pencil"></i></button></p>
+      </div>
+      <div class="mb-0">
+        <span class="text-muted small">Phone Number</span>
+        <p class="mb-0 fw-medium">{{ currentUser.phone || 'Not set' }}</p>
+      </div>
+    </div>
   </div>
 </template>
 

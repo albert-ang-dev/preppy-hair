@@ -12,11 +12,18 @@ import Swal from 'sweetalert2';
 const loading = ref(false)
 const supabase = useSupabase()
 const appointments = ref([]);
+const emailFilter = ref('');
+
+const filteredAppointments = computed(() => {
+  const query = emailFilter.value.trim().toLowerCase()
+  if (!query) return appointments.value
+  return appointments.value.filter((appt) => appt.client_email?.toLowerCase().includes(query))
+});
 
 async function refresh() {
   loading.value = true
   const { data: { user } } = await supabase.auth.getUser()
-  const { data, error } = await supabase.from('appointments').select('*').eq('barber_id', user.id)
+  const { data, error } = await supabase.from('appointments').select('*').eq('barber_id', user.id).neq("status",4);
   if (error) {
     console.error('Error fetching appointments:', error)
   } else {
@@ -37,7 +44,7 @@ function completedButtonClick(appt) {
     cancelButtonText: 'Cancel',
   }).then(async (result) => {
     if (result.isConfirmed) {
-      const { error } = await supabase.from('clients').update({ appointment_status: 5}).eq('id', appt.id);
+      const { error } = await supabase.from('appointments').update({ appointment_status: 5}).eq('id', appt.id);
       if (error) {
         console.error('Error updating appointment status:', error);
       } else {
@@ -61,7 +68,7 @@ function cancelAppointment(appt){
     cancelButtonText: 'No',
   }).then(async (result) => {
     if (result.isConfirmed) {
-      const { error } = await supabase.from('clients').update({ appointment_status: 4}).eq('id', appt.id);
+      const { error } = await supabase.from('appointments').update({ status: 4}).eq('id', appt.id);
       if (error) {
         console.error('Error updating appointment status:', error);
       } else {
@@ -74,52 +81,6 @@ function cancelAppointment(appt){
   });
 }
 
-async function openAppointmentCreateBox() {
-  const { value: formValues } = await Swal.fire({
-    title: 'Schedule An Appointment',
-    html:
-      '<input id="swal-client-name" class="swal2-input" placeholder="Client name">' +
-      '<input id="swal-client-email" type="email" class="swal2-input" placeholder="Client email">' +
-      '<input id="swal-service" class="swal2-input" placeholder="Service">' +
-      '<input id="swal-date" type="date" class="swal2-input">',
-    focusConfirm: false,
-    showCancelButton: true,
-    confirmButtonText: 'Schedule',
-    preConfirm: () => {
-      const client_name = document.getElementById('swal-client-name').value.trim()
-      const client_email = document.getElementById('swal-client-email').value.trim()
-      const service = document.getElementById('swal-service').value.trim()
-      const appointment_date = document.getElementById('swal-date').value
-
-      if (!client_name || !client_email || !service || !appointment_date) {
-        Swal.showValidationMessage('Please fill in all fields')
-        return false
-      }
-
-      return { client_name, client_email, service, appointment_date }
-    },
-  })
-
-  if (!formValues) return
-
-  const { data: { user } } = await supabase.auth.getUser()
-
-  const { error } = await supabase.from('clients').insert({
-    barber_id: user.id,
-    client_name: formValues.client_name,
-    client_email: formValues.client_email,
-    service: formValues.service,
-    appointment_date: formValues.appointment_date,
-    appointment_status: 0,
-  })
-
-  if (error) {
-    Swal.fire('Error', 'Failed to schedule the appointment: ' + error.message, 'error')
-  } else {
-    Swal.fire('Scheduled', 'The appointment has been created.', 'success')
-    await refresh()
-  }
-}
 
 </script>
 
@@ -159,13 +120,22 @@ async function openAppointmentCreateBox() {
     </div>
 
     <div class="bh-card p-4">
-      <p><input type="date" class="form-control" placeholder="Search appointments..." /></p>
+
+      <div class="mb-3">
+        <input
+          type="text"
+          class="form-control"
+          placeholder="Filter by client email..."
+          v-model="emailFilter"
+        >
+      </div>
+
       <div v-if="loading" class="text-center text-muted py-5">
         Loading appointments…
       </div>
 
-      <div v-else-if="appointments.length === 0" class="text-center text-muted py-5">
-        No appointments scheduled.
+      <div v-else-if="filteredAppointments.length === 0" class="text-center text-muted py-5">
+        No appointments {{ emailFilter ? 'match that email.' : 'scheduled.' }}
       </div>
 
       <div v-else class="table-responsive appointments-table-wrap">
@@ -173,6 +143,7 @@ async function openAppointmentCreateBox() {
           <thead>
             <tr>
               <th scope="col">Client</th>
+              <th scope="col">Client Email</th>
               <th scope="col">Service</th>
               <th scope="col">Date</th>
               <th scope="col">Status</th>
@@ -180,13 +151,14 @@ async function openAppointmentCreateBox() {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="appt in appointments" :key="appt.id">
+            <tr v-for="appt in filteredAppointments" :key="appt.id">
               <td>
                 <div class="d-flex align-items-center gap-2">
-                  
+
                   <span class="fw-medium">{{ appt.client_name }}</span>
                 </div>
               </td>
+              <td>{{ appt.client_email }}</td>
               <td>{{ appt.service }}</td>
               <td>{{ appt.appointment_date }}</td>
               <td>
@@ -198,13 +170,14 @@ async function openAppointmentCreateBox() {
                 <span class="badge-status" v-else>Canceled</span>
               </td>
               <td class="text-end">
+              
                 <button
-                  v-if="appt.status==1"
+                v-if="appt.status==1"
                   type="button"
-                  class="btn btn-sm btn-outline-success rounded-pill me-2"
-                  @click="completedButtonClick(appt)"
+                  class="btn btn-sm btn-outline-info rounded-pill me-2"
+                  @click="cancelAppointment(appt)"
                 >
-                  Notify
+                  Check In
                 </button>
 
                 <button

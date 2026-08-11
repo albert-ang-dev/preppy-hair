@@ -87,6 +87,8 @@ async function addAppointment() {
   } else {
     Swal.fire('Success', 'Appointment added successfully.', 'success')
     appointmentForm.value = { name: '', email: '', service: '', date: '' }
+
+    
   }
 }
 </script>
