@@ -7,12 +7,31 @@ const supabase = useSupabase()
 const apptId = route.query.apptid;
 const confirming = ref(true)
 const confirmed = ref(false)
+const deleted = ref(false)
 const errorMessage = ref('')
 
 onMounted(async () => {
     if (!apptId) {
         errorMessage.value = 'Missing appointment reference.'
         confirming.value = false
+        return
+    }
+
+    const { data: appt, error: fetchError } = await supabase
+        .from('appointments')
+        .select('status')
+        .eq('id', apptId)
+        .maybeSingle()
+
+    if (fetchError || !appt) {
+        confirming.value = false
+        errorMessage.value = 'We couldn\'t find this appointment.'
+        return
+    }
+
+    if (appt.status === 5) {
+        confirming.value = false
+        deleted.value = true
         return
     }
 
@@ -41,6 +60,10 @@ onMounted(async () => {
       <template v-else-if="confirmed">
         <h1 class="brand-font fs-3 fw-semibold mb-2">You're confirmed!</h1>
         <p class="text-muted mb-0">See you soon.</p>
+      </template>
+
+      <template v-else-if="deleted">
+        <h1 class="brand-font fs-3 fw-semibold mb-2">Appointment was marked deleted</h1>
       </template>
 
       <template v-else>

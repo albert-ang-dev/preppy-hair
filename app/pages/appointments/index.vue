@@ -34,29 +34,6 @@ async function refresh() {
 
 onMounted(refresh)
 
-function completedButtonClick(appt) {
-  Swal.fire({
-    title: 'Complete Appointment',
-    text: 'Are you sure you want to mark this appointment as completed?',
-    icon: 'info',
-    showCancelButton: false,
-    confirmButtonText: 'Yes, mark as completed',
-    cancelButtonText: 'Cancel',
-  }).then(async (result) => {
-    if (result.isConfirmed) {
-      const { error } = await supabase.from('appointments').update({ appointment_status: 5}).eq('id', appt.id);
-      if (error) {
-        console.error('Error updating appointment status:', error);
-      } else {
-        Swal.fire('Completed', 'The appointment has been marked as completed.', 'success');
-        await refresh()
-      }
-    }else {
-      Swal.fire('Cancelled', 'The appointment was not marked as completed.', 'info');
-    }
-  });
-
-}
 
 function cancelAppointment(appt){
   Swal.fire({
@@ -68,15 +45,15 @@ function cancelAppointment(appt){
     cancelButtonText: 'No',
   }).then(async (result) => {
     if (result.isConfirmed) {
-      const { error } = await supabase.from('appointments').update({ status: 4}).eq('id', appt.id);
+      const { error } = await supabase.from('appointments').update({ status: 5}).eq('id', appt.id);
       if (error) {
         console.error('Error updating appointment status:', error);
       } else {
-        Swal.fire('Completed', 'The appointment has been marked as completed.', 'success');
+        Swal.fire('Completed', 'The appointment has been marked as deleted.', 'success');
         await refresh()
       }
     }else {
-      Swal.fire('Cancelled', 'The appointment was not marked as completed.', 'info');
+      Swal.fire('Cancelled', 'The appointment was not marked as deleted.', 'info');
     }
   });
 }
