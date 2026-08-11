@@ -15,13 +15,14 @@ class handler(BaseHTTPRequestHandler):
         
         # 2. Extract values from frontend form
         notify_type = body.get("notify_type")
-        user_email = body.get("email")
-        client_name = body.get("name")
 
 
         try:
 
             if notify_type == "walkin-no-show":
+               user_email = body.get("email")
+               client_name = body.get("name")
+
                # 3. Fire the email via Resend
                params = {
                    "from": "send@preppyhair.site", # Your verified sender email
@@ -33,6 +34,9 @@ class handler(BaseHTTPRequestHandler):
                    """
                }
             elif notify_type == "walkin-in-service":
+               user_email = body.get("email")
+               client_name = body.get("name")
+
                params = {
                    "from": "send@preppyhair.site", # Your verified sender email
                    "to": [user_email], # Where you want to receive notifications
@@ -41,7 +45,25 @@ class handler(BaseHTTPRequestHandler):
                       <h3>PREPPY HAIR</h3>
                       <p>You are now in service!</p>
                    """
-               }                
+               }      
+            elif notify_type == "appointment-created":
+               user_email = body.get("email")
+               client_name = body.get("name")
+               appointment_date = body.get("appt_date")     
+               appointment_id = body.get("appt_id")             
+               
+               params = {
+                   "from": "send@preppyhair.site", # Your verified sender email
+                   "to": [user_email], # Where you want to receive notifications
+                   "subject": f"Walk-In  {client_name}",
+                   "html": f"""
+                      <h3>PREPPY HAIR</h3>
+                      <p>You now have an appointment!</p>
+                      <p>Date: {appointment_date}</p>
+                      <p><a href="https://preppyhair.site/apptconfirmation?apptid={appointment_id}">CLICK TO CONFIRM</a></p>
+                   """
+               }                      
+
             email_response = resend.Emails.send(params)
             
             # 4. Return successful response to Nuxt

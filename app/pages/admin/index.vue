@@ -86,8 +86,31 @@ async function addAppointment() {
     Swal.fire('Error', 'Failed to add appointment.', 'error')
   } else {
     Swal.fire('Success', 'Appointment added successfully.', 'success')
-    appointmentForm.value = { name: '', email: '', service: '', date: '' }
+    
 
+        try {
+          // Vercel routes '/api/send' directly to your 'api/send.py' script
+          const response = await $fetch('/api/notify', {
+            method: 'POST',
+            body: {
+              name:  appointmentForm.value.name,
+              email:  appointmentForm.value.email,
+              barber_id: currentUser.value.id,
+              appt_date:appointmentForm.value.date,
+              client_appt_id: data[0].id
+            }
+          })
+
+          if (response.success) {
+            Swal.fire('Success', 'Notification email sent successfully.', 'success');
+            // Reset form on success
+            appointmentForm.value = { name: '', email: '', service: '', date: '' }
+          }else{
+            consolelog(response.error);
+          }
+        } catch (error) {
+          console.error('Backend submission error:', error)
+        };    
     
   }
 }
