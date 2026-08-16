@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PayPal $3/mo subscription — test harness</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 480px; margin: 40px auto; padding: 0 16px; }
+  label { display: block; font-size: 13px; font-weight: 600; margin: 12px 0 4px; }
+  input { width: 100%; padding: 8px; box-sizing: border-box; }
+  button { margin-top: 12px; padding: 8px 14px; cursor: pointer; }
+  pre { background: #f4f4f4; padding: 12px; border-radius: 6px; white-space: pre-wrap; word-break: break-all; }
+  hr { margin: 32px 0; }
+</style>
+</head>
+<body>
+  <h2>PayPal $3/mo subscription — test harness</h2>
+  <p>Local-only scratch page for exercising <code>/api/payment</code>. Not linked from the app; delete when done.</p>
+
+  <h3>1. Set up the Product + $3/month Plan</h3>
+  <p>Runs once, server-side, using the PAYPAL_CLIENT_ID/SECRET already in your <code>.env</code>. No terminal needed — just click.</p>
+  <button id="setupBtn">Create Product + Plan</button>
+
+  <hr>
+
+  <h3>2. Check out as a sandbox buyer</h3>
+  <label for="clientId">Sandbox Client ID (public, safe to paste)</label>
+  <input id="clientId" placeholder="Ab1Cd2...">
+
+  <label for="planId">Sandbox Plan ID ($3/month)</label>
+  <input id="planId" placeholder="P-XXXXXXXXXXXXXXX">
+
+  <button id="loadBtn">Load PayPal button</button>
+  <div id="paypal-button-container" style="margin-top: 16px;"></div>
+
+  <hr>
+
+  <h3>3. Or re-test an existing subscription</h3>
+  <p>Once you've approved a subscription once, its ID stays ACTIVE — reuse it here to test <code>/api/payment</code> repeatedly without re-checking-out.</p>
+  <label for="subId">Subscription ID</label>
+  <input id="subId" placeholder="I-XXXXXXXXXXXX">
+  <button id="verifyBtn">POST to /api/payment</button>
+
+  <h3>Response</h3>
+  <pre id="output">(nothing yet)</pre>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const output = $('output');
+
+  // Remember values across reloads so you're not retyping IDs every time.
+  ['clientId', 'planId', 'subId'].forEach((id) => {
+    $(id).value = localStorage.getItem(id) || '';
+    $(id).addEventListener('input', () => localStorage.setItem(id, $(id).value));
+  });
+
+  async function callPaymentApi(subscriptionId) {
+    output.textContent = 'Calling /api/payment...';
+    try {
+      const res = await fetch('/api/payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notify_type: 'paypal-pay', subscription_id: subscriptionId })
+      });
+      const body = await res.json();
+      output.textContent = `HTTP ${res.status}\n\n` + JSON.stringify(body, null, 2);
+    } catch (err) {
+      output.textContent = 'Request failed: ' + err.message;
+    }
+  }
+
+  $('setupBtn').addEventListener('click', async () => {
+    output.textContent = 'Creating Product + Plan...';
+    try {
+      const res = await fetch('/api/payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notify_type: 'paypal-setup-plan' })
+      });
+      const resBody = await res.json();
+      output.textContent = `HTTP ${res.status}\n\n` + JSON.stringify(resBody, null, 2);
+      if (resBody.plan_id) {
+        $('planId').value = resBody.plan_id;
+        localStorage.setItem('planId', resBody.plan_id);
+      }
+    } catch (err) {
+      output.textContent = 'Request failed: ' + err.message;
+    }
+  });
+
+  $('verifyBtn').addEventListener('click', () => {
+    const subscriptionId = $('subId').value.trim();
+    if (!subscriptionId) return alert('Enter a subscription ID first.');
+    callPaymentApi(subscriptionId);
+  });
+
+  $('loadBtn').addEventListener('click', () => {
+    const clientId = $('clientId').value.trim();
+    const planId = $('planId').value.trim();
+    if (!clientId || !planId) return alert('Enter both Client ID and Plan ID first.');
+
+    $('paypal-button-container').innerHTML = '';
+    const script = document.createElement('script');
+    script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}&vault=true&intent=subscription&enable-funding=card`;
+    script.onload = () => {
+      window.paypal.Buttons({
+        style: { shape: 'pill', color: 'gold', layout: 'vertical', label: 'subscribe' },
+        createSubscription: (data, actions) => actions.subscription.create({ plan_id: planId }),
+        onApprove: (data) => {
+          $('subId').value = data.subscriptionID;
+          localStorage.setItem('subId', data.subscriptionID);
+          output.textContent = `Approved! subscriptionID = ${data.subscriptionID}\n\nVerifying with /api/payment...`;
+          callPaymentApi(data.subscriptionID);
+        },
+        onError: (err) => {
+          output.textContent = 'PayPal button error: ' + err;
+        }
+      }).render('#paypal-button-container');
+    };
+    document.head.appendChild(script);
+  });
+</script>
+</body>
+</html>

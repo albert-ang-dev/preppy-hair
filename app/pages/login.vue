@@ -49,7 +49,7 @@ function loadPaypalSdk() {
 
     const script = document.createElement('script');
     // TODO: replace PAYPAL_CLIENT_ID (set via runtimeConfig/.env) with your real PayPal app Client ID
-    script.src = `https://www.paypal.com/sdk/js?client-id=${config.public.paypalClientId}&vault=true&intent=subscription`;
+    script.src = `https://www.paypal.com/sdk/js?client-id=AbO8ip5tqLI8QosePi7hS2LL4LHjf-q8BKVv9rLPqiBiy7-G3e72n5rJyAnrkE54rT5FuEaL0Vy4iFnk&vault=true&intent=subscription`;
     script.onload = () => renderPaypalButton();
     document.head.appendChild(script);
 }
@@ -69,22 +69,58 @@ function renderPaypalButton() {
             },
             createSubscription: (data, actions) => {
                 return actions.subscription.create({
-                    // TODO: replace with your real $18/month PayPal subscription Plan ID
-                    plan_id: 'YOUR_PLAN_ID'
+                    plan_id: config.public.paypalPlanId
                 });
             },
             onApprove: async (data) => {
-                const { error } = await supabase.auth.signUp({
+                registerError.value = '';
+
+                try {
+                    const verifyResponse = await $fetch('/api/payment', {
+                        method: 'POST',
+                        body: { notify_type: 'paypal-pay', subscription_id: data.subscriptionID }
+                    });
+
+                    if (!verifyResponse.success) {
+                        registerError.value = 'We could not verify your subscription. Please try again.';
+                        return;
+                    }
+                } catch (err) {
+                    console.error('Subscription verification error:', err);
+                    registerError.value = 'We could not verify your subscription. Please try again.';
+                    return;
+                }
+
+                const { data: signUpData, error } = await supabase.auth.signUp({
                     email: registerForm.value.email,
                     password: registerForm.value.password,
-                    options: { data: { display_name: registerForm.value.name } }
+                    options: {
+                        data: {
+                            display_name: registerForm.value.name,
+                            paypal_subscription_id: data.subscriptionID
+                        }
+                    }
                 });
 
                 if (error) {
                     registerError.value = error.message;
-                } else {
-                    registerSuccess.value = true;
+                    return;
                 }
+
+                try {
+                    await $fetch('/api/payment', {
+                        method: 'POST',
+                        body: {
+                            notify_type: 'register-barber',
+                            barber_id: signUpData.user.id,
+                            barber_name: registerForm.value.name
+                        }
+                    });
+                } catch (err) {
+                    console.error('Barber record creation error:', err);
+                }
+
+                registerSuccess.value = true;
             },
             onError: (err) => {
                 console.error('PayPal error:', err);

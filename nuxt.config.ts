@@ -25,6 +25,7 @@ export default defineNuxtConfig({
       supabaseUrl: process.env.SUPABASE_URL,
       supabaseKey: process.env.SUPABASE_PUBLISHABLE_KEY,
       paypalClientId: process.env.PAYPAL_CLIENT_ID,
+      paypalPlanId: process.env.PAYPAL_PLAN_ID,
     },
   }
 })

@@ -14,6 +14,7 @@ const supabase = useSupabase();
 const walkIns = ref([]);
 const todaysAppointments = ref([]);
 const currentUser = ref(null);
+const loading = ref(false);
 
 
 onMounted(async () => {
@@ -32,7 +33,7 @@ function todayDateKey() {
 }
 
 function getTodaysAppointments(){
-  supabase
+  return supabase
     .from('appointments')
     .select('*')
     .eq('barber_id', currentUser.value.id)
@@ -59,7 +60,7 @@ function initials(name) {
 }
 
 function getWalkIns(){
-  supabase.from('walkins').select('*').eq('barber_id', currentUser.value.id).eq('status', 2).then(({ data, error }) => {
+  return supabase.from('walkins').select('*').eq('barber_id', currentUser.value.id).eq('status', 2).then(({ data, error }) => {
     if (error) {
       console.error('Error fetching walk-ins:', error);
     } else {
@@ -70,6 +71,12 @@ function getWalkIns(){
       }
     }
   });
+}
+
+async function refresh() {
+  loading.value = true;
+  await Promise.all([getWalkIns(), getTodaysAppointments()]);
+  loading.value = false;
 }
 
 
@@ -162,7 +169,32 @@ function inServiceClicked(walkins){ // 3
 
     <div class="row">
 
-        <h5 class="brand-font fw-semibold mb-3">Walkins / Checked Ins</h5>
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <h5 class="brand-font fw-semibold mb-0">Walkins / Checked Ins</h5>
+          <button
+            type="button"
+            class="btn-icon d-flex align-items-center justify-content-center"
+            aria-label="Refresh"
+            :disabled="loading"
+            @click="refresh"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              width="18"
+              height="18"
+              :class="{ 'spin': loading }"
+            >
+              <polyline points="23 4 23 10 17 10" />
+              <polyline points="1 20 1 14 7 14" />
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+            </svg>
+          </button>
+        </div>
 
         <div class="overflow-auto walkins-list-wrap">
           <div class="card bh-card border-0 mb-3" v-for="n in walkIns" :key="n.id">
@@ -207,5 +239,14 @@ function inServiceClicked(walkins){ // 3
 .bh-input:focus {
   border-color: var(--bh-gold);
   box-shadow: 0 0 0 0.2rem rgba(199, 160, 89, 0.2);
+}
+
+.spin {
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 </style>

@@ -18,20 +18,36 @@ onMounted(async () => {
 function deleteAccountClicked() {
   Swal.fire({
     title: 'Delete your account?',
-    text: 'This will sign you out and cannot be undone.',
+    text: 'This will cancel your subscription and permanently delete your account. This cannot be undone.',
     icon: 'warning',
     showCancelButton: true,
     confirmButtonText: 'Yes, delete my account',
     cancelButtonText: 'Cancel',
     confirmButtonColor: '#d33',
   }).then(async (result) => {
-    if (result.isConfirmed) {
-      // NOTE: fully deleting the auth user requires a backend endpoint using
-      // the Supabase service role key (not safe to expose client-side).
-      // This currently only signs the user out.
-      await supabase.auth.signOut()
-      navigateTo('/login', { replace: true })
+    if (!result.isConfirmed) return;
+
+    const { data: { session } } = await supabase.auth.getSession();
+
+    try {
+      const response = await $fetch('/api/payment', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session.access_token}` },
+        body: { notify_type: 'delete-account' }
+      });
+
+      if (!response.success) {
+        Swal.fire('Error', 'Could not delete your account. Please try again.', 'error');
+        return;
+      }
+    } catch (err) {
+      console.error('Delete account error:', err);
+      Swal.fire('Error', 'Could not delete your account. Please try again.', 'error');
+      return;
     }
+
+    await supabase.auth.signOut()
+    navigateTo('/login', { replace: true })
   });
 }
 </script>
@@ -54,7 +70,7 @@ function deleteAccountClicked() {
           </div>
           <div class="mb-2">
             <span class="text-muted small">Display Name</span>
-            <p class="mb-0 fw-medium">{{ currentUser.user_metadata?.display_name || 'Not set' }} <button class="btn btn-warning"><i class="bi bi-pencil"></i></button></p>
+            <p class="mb-0 fw-medium">{{ currentUser.user_metadata?.display_name || 'Not set' }}</p>
           </div>
           <div class="mb-0">
             <span class="text-muted small">Phone Number</span>

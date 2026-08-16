@@ -3,6 +3,8 @@
 const route = useRoute();
 const supabase = useSupabase()
 const checkin_result = ref("");
+const needCheckin = ref(true);
+const checkedIn = ref({ name: '', service: '', id: null });
 
 
 definePageMeta({ layout: 'blank' });
@@ -17,12 +19,11 @@ const barberName = ref("");
 
 onMounted(async () =>{
     await supabase.from("preppyhair_barbers").select("*").eq("barber_id",barber).then(async({ data, error }) => {
-        if(error){
-
-        }else{
+        if(error == null){
             barberName.value = data[0].barber_name;
         }
     });
+
 
 })
 
@@ -38,7 +39,9 @@ async function submitCheckIn() {
     if(error){
         checkin_result.value = "Something went wrong, try again";
     }else{
-        checkin_result.value = "You are now checked in!";
+      checkin_result.value = "You are now checked in!";
+      checkedIn.value = { name: form.value.name, service: form.value.service, id: data[0].id };
+      needCheckin.value = false;
     }
 
     form.value = {name:"",email:"",service:""}
@@ -48,7 +51,7 @@ async function submitCheckIn() {
 
 <template>
   <div class="checkin-page d-flex align-items-center justify-content-center">
-    <div class="bh-card p-5 checkin-card">
+    <div class="bh-card p-5 checkin-card" v-if="needCheckin">
       <div class="d-flex flex-column align-items-center text-center mb-4">
         <div class="sidebar-mark d-flex align-items-center justify-content-center mb-3">
           <i class="bi bi-scissors"></i>
@@ -74,8 +77,38 @@ async function submitCheckIn() {
         </div>
         <button type="submit" class="btn btn-gold rounded-pill w-100 py-2">Check In</button>
       </form>
+    </div>
 
-      <p>{{ checkin_result }}</p>
+    <div class="bh-card p-5 checkin-card text-center" v-else>
+      <div class="checkin-success-mark d-flex align-items-center justify-content-center mb-3 mx-auto">
+        <i class="bi bi-check-lg"></i>
+      </div>
+      <div class="topbar-eyebrow text-uppercase fw-semibold">Preppy Hair Studio</div>
+      <h1 class="brand-font fs-3 fw-semibold mb-2">{{ checkin_result }}</h1>
+      <p class="text-muted small mb-4">We'll let you know when it's almost your turn.</p>
+
+      <div class="checkin-summary text-start mb-4">
+        <div class="d-flex justify-content-between py-2">
+          <span class="text-muted small">Barber</span>
+          <span class="fw-semibold small">{{ barberName }}</span>
+        </div>
+        <div class="d-flex justify-content-between py-2">
+          <span class="text-muted small">Name</span>
+          <span class="fw-semibold small">{{ checkedIn.name }}</span>
+        </div>
+        <div class="d-flex justify-content-between py-2">
+          <span class="text-muted small">Service</span>
+          <span class="fw-semibold small">{{ checkedIn.service }}</span>
+        </div>
+      </div>
+
+      <NuxtLink
+        v-if="checkedIn.id"
+        :to="`/waitlist/${barber}?appointment_id=${checkedIn.id}`"
+        class="btn btn-gold rounded-pill w-100 py-2"
+      >
+        View my position in line
+      </NuxtLink>
     </div>
   </div>
 </template>
@@ -101,5 +134,26 @@ async function submitCheckIn() {
 .bh-input:focus {
   border-color: var(--bh-gold);
   box-shadow: 0 0 0 0.2rem rgba(199, 160, 89, 0.2);
+}
+
+.checkin-success-mark {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--bh-gold), var(--bh-gold-dark));
+  color: #ffffff;
+  font-size: 26px;
+  box-shadow: 0 4px 14px rgba(199, 160, 89, 0.35);
+}
+
+.checkin-summary {
+  background: var(--bh-bg);
+  border: 1px solid var(--bh-border);
+  border-radius: 12px;
+  padding: 0.25rem 1rem;
+}
+
+.checkin-summary > div:not(:last-child) {
+  border-bottom: 1px solid var(--bh-border);
 }
 </style>
