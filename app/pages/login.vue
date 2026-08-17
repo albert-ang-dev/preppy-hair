@@ -48,8 +48,7 @@ function loadPaypalSdk() {
     }
 
     const script = document.createElement('script');
-    // TODO: replace PAYPAL_CLIENT_ID (set via runtimeConfig/.env) with your real PayPal app Client ID
-    script.src = `https://www.paypal.com/sdk/js?client-id=AbO8ip5tqLI8QosePi7hS2LL4LHjf-q8BKVv9rLPqiBiy7-G3e72n5rJyAnrkE54rT5FuEaL0Vy4iFnk&vault=true&intent=subscription`;
+    script.src = `https://www.paypal.com/sdk/js?client-id=${config.public.paypalClientId}&vault=true&intent=subscription`;
     script.onload = () => renderPaypalButton();
     document.head.appendChild(script);
 }
@@ -95,6 +94,7 @@ function renderPaypalButton() {
                     email: registerForm.value.email,
                     password: registerForm.value.password,
                     options: {
+                        emailRedirectTo: window.location.origin,
                         data: {
                             display_name: registerForm.value.name,
                             paypal_subscription_id: data.subscriptionID

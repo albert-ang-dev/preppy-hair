@@ -155,6 +155,21 @@ def delete_barber_record(barber_id):
     urllib.request.urlopen(req)
 
 
+def delete_barber_table_rows(table, barber_id):
+    """Delete every row in `table` keyed to this barber_id. Needed before
+    delete_supabase_user, since walkins/appointments hold a foreign key to
+    auth.users(id) and Postgres refuses to delete a still-referenced user."""
+    req = urllib.request.Request(
+        f"{SUPABASE_URL}/rest/v1/{table}?barber_id=eq.{barber_id}",
+        headers={
+            "apikey": SUPABASE_SECRET_KEY,
+            "Authorization": f"Bearer {SUPABASE_SECRET_KEY}",
+        },
+        method="DELETE",
+    )
+    urllib.request.urlopen(req)
+
+
 def delete_supabase_user(user_id):
     req = urllib.request.Request(
         f"{SUPABASE_URL}/auth/v1/admin/users/{user_id}",
@@ -289,6 +304,12 @@ class handler(BaseHTTPRequestHandler):
                         # Already cancelled/expired subscriptions 422 here --
                         # don't let that block the account deletion itself.
                         print(f"PayPal cancel warning for {subscription_id}: {e.read().decode()}")
+
+                for table in ("walkins", "appointments"):
+                    try:
+                        delete_barber_table_rows(table, user_id)
+                    except urllib.error.HTTPError as e:
+                        print(f"{table} delete warning for {user_id}: {e.read().decode()}")
 
                 try:
                     delete_barber_record(user_id)
